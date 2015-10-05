@@ -30,6 +30,7 @@ clipn=0
 itemn=0
 currcmd="$cmd"
 while next=`shift` ; do
+	if [[ -z "$next" ]] ; then break ; fi
 	if (echo $next | grep -q '^-' ) ; then
 		currcmd="$currcmd $next"
 	else
@@ -51,7 +52,9 @@ while next=`shift` ; do
 done
 
 if [[ "$mode" == "render" ]] ; then
-	$cmd -o "$out" ~/.vedl/clip{0..$((clipn-1))}.avi
-	rm -f ~/.vedl/clip*.avi
+	if [[ -e ~/.vedl/clip0.avi ]] ; then
+		$cmd -o "$out" ~/.vedl/clip{0..$((clipn-1))}.avi
+		rm -f ~/.vedl/clip*.avi
+	fi
 fi
 
