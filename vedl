@@ -1,0 +1,57 @@
+#!/usr/bin/env zsh
+
+usage="Usage:\n\t$0 preview [quoted mplayer options] video1 startpos1 length1 ... videon startposn lengthn\n\t$0 render output [quoted mplayer options] video1 startpos1 length1 ... videon startposn lengthn"
+
+
+mode=""; cmd=""; out=""
+oac="pcm" ; ovc="lavc"
+scale="640:480"
+vf="-vf scale=$scale"
+case "$1" in 
+	preview) mode="preview" ;;
+	render) mode="render" ;;
+	*) echo -e "$usage" ; exit 1 ;;
+esac
+
+[[ -e ~/.vedl ]] || mkdir ~/.vedl
+[[ -e ~/.vedlrc ]] && . ~/.vedlrc
+
+
+case $mode in 
+	preview) 
+		cmd="mplayer -fixed-vo" ;;
+	render)
+		out=`shift`
+		cmd="mencoder -oac $oac -ovc $ovc" ;;
+esac
+cmd="$cmd $vf"
+
+clipn=0
+itemn=0
+currcmd="$cmd"
+while next=`shift` ; do
+	if (echo $next | grep -q '^-' ) ; then
+		currcmd="$currcmd $next"
+	else
+		case $itemn in 
+			0) currcmd="$currcmd -ss $next" ;;
+			1) currcmd="$currcmd -endpos $next" ;;
+			2) 
+				currcmd="$currcmd \"$next\"" 
+				if [[ "$mode" == "render" ]] ; then
+					$currcmd -o ~/.vedl/clip${clipn}.avi
+					currcmd="$cmd"
+					clipn=$((clipn + 1))
+				fi
+				itemn="-1"
+			;;
+		esac
+		itemn=$((itemn + 1))
+	fi
+done
+
+if [[ "$mode" == "render" ]] ; then
+	$cmd -o "$out" ~/.vedl/clip{0..$((clipn-1))}.avi
+	rm -f ~/.vedl/clip*.avi
+fi
+
